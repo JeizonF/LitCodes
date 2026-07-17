@@ -1,14 +1,18 @@
+from utils import *
+
+import joblib
 import pandas as pd
 import numpy as np
-import joblib
-import os
 
-
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import (
+    train_test_split,
+    cross_val_score
+)
+
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -19,12 +23,6 @@ from sklearn.metrics import (
 # =====================================================
 # CONFIG
 # =====================================================
-
-TAMANHO_JANELA = 100
-PASSO = 25
-
-
-PASTA_DADOS = "dados"
 
 
 # =====================================================
@@ -112,8 +110,11 @@ def carregar_normal():
     print("================")
 
 
-    df=pd.read_csv(
-        f"{PASTA_DADOS}/openBCI_raw_2018-07-02_15-46-30.txt",
+    df = pd.read_csv(
+        os.path.join(
+            PASTA_DADOS,
+            ARQUIVOS["normal"]
+        ),
         skiprows=5
     )
 
@@ -159,7 +160,10 @@ def carregar_normal():
 def carregar_csv(nome):
 
 
-    caminho=f"{PASTA_DADOS}/{nome}.csv"
+    caminho = os.path.join(
+        PASTA_DADOS,
+        ARQUIVOS[nome]
+    )
 
 
     if not os.path.exists(caminho):
@@ -251,8 +255,11 @@ def carregar_piscada():
     print("================")
 
 
-    raw=pd.read_csv(
-        f"{PASTA_DADOS}/piscada.csv",
+    raw = pd.read_csv(
+        os.path.join(
+            PASTA_DADOS,
+            ARQUIVOS["piscada"]
+        ),
         header=None
     )
 
@@ -318,70 +325,39 @@ classes=[]
 
 
 
-movimentos={
-
-    "normal": carregar_normal(),
-
-    "piscada": carregar_piscada(),
-
-    "cima": None,
-
-    "baixo": None,
-
-    "esquerda": None,
-
-    "direita": None
-
-}
+movimentos=[
+    "normal",
+    "piscada",
+    "cima",
+    "baixo",
+    "esquerda",
+    "direita"
+]
 
 
 
-for nome,df in movimentos.items():
+for nome in movimentos:
 
+    print("\n================")
+    print("Carregando", nome)
+    print("================")
+
+    df=carregar_movimento(nome)
 
     if df is None:
 
-        if nome not in [
-            "normal",
-            "piscada"
-        ]:
-
-            df=carregar_csv(nome)
-
-
-
-    if df is None:
-
-        print(
-            "Ignorando",
-            nome
-        )
-
+        print("Arquivo não encontrado.")
         continue
-
-
-
-    print(
-        "Criando janelas:",
-        nome
-    )
-
 
     X=criar_janelas(df)
 
-
-    print(
-        "Quantidade:",
-        len(X)
-    )
-
-
     dados.extend(X)
-
 
     classes.extend(
         [nome]*len(X)
     )
+
+    print("Janelas:",len(X))
 
 
 
