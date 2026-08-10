@@ -1,25 +1,22 @@
-import numpy as np
-import joblib
-
+import numpy as np  # usado para fazer cálculos matemáticos
+import joblib  # usado para carregar o modelo salvo
 
 from utils import (
-    criar_janelas,
-    carregar_movimento
+    criar_janelas,      # cria as janelas do sinal
+    carregar_movimento  # carrega o arquivo do movimento
 )
 
+# informa que o modelo está sendo carregado
+print("\ncarregando modelo...")
 
-
-print("\nCarregando modelo...")
-
-
+# carrega o modelo svm salvo
 modelo = joblib.load(
     "modelo_svm.pkl"
 )
 
-
-
+# mostra o menu de opções
 print("""
-Digite:
+digite:
 
 1 - normal
 2 - piscada
@@ -29,139 +26,98 @@ Digite:
 6 - direita
 """)
 
+# lê a opção escolhida pelo usuário
+opcao = input("> ").strip()
 
-opcao=input("> ").strip()
-
-
-
-mapa={
-
-    "1":"normal",
-    "2":"piscada",
-    "3":"cima",
-    "4":"baixo",
-    "5":"esquerda",
-    "6":"direita"
-
+# relaciona cada número com um movimento
+mapa = {
+    "1": "normal",
+    "2": "piscada",
+    "3": "cima",
+    "4": "baixo",
+    "5": "esquerda",
+    "6": "direita"
 }
 
-
-
+# verifica se a opção é válida
 if opcao not in mapa:
 
-    print("Opção inválida")
+    print("opção inválida")
     exit()
 
+# obtém o nome do movimento escolhido
+classe = mapa[opcao]
 
-
-classe=mapa[opcao]
-
-
-
-dados=carregar_movimento(
+# carrega os dados do movimento escolhido
+dados = carregar_movimento(
     classe
 )
 
-
+# verifica se o arquivo existe
 if dados is None:
 
     print(
-        "\nArquivo desse movimento ainda não existe!"
+        "\narquivo desse movimento ainda não existe"
     )
 
     exit()
 
+# cria as janelas do sinal
+print("\ncriando janelas...")
 
-
-# =====================================
-# CRIAR JANELAS
-# =====================================
-
-
-print("\nCriando janelas...")
-
-
-X=criar_janelas(
+# transforma o sinal em várias janelas
+X = criar_janelas(
     dados
 )
 
-
+# mostra quantas janelas foram criadas
 print(
-    "Quantidade de janelas:",
+    "quantidade de janelas:",
     len(X)
 )
 
-
+# mostra quantas features cada janela possui
 print(
-    "Quantidade de features:",
+    "quantidade de features:",
     X.shape[1]
 )
 
-
-
-pred=modelo.predict(
-    X
-)
-
-
-
-print("\n====================")
-print("RESULTADO")
-print("====================")
-
-
-
-for i,p in enumerate(pred):
-
-    print(
-        f"{i} -> {p}"
-    )
-
-
-# =====================================
-# PREDIÇÃO
-# =====================================
-
-
+# faz a previsão para todas as janelas
 pred = modelo.predict(
     X
 )
 
-
-
+# mostra o resultado das previsões
 print("\n====================")
-print("RESULTADO")
+print("resultado")
 print("====================")
 
+# cria uma lista para guardar as previsões
+resultados = []
 
-
-resultados=[]
-
-
+# percorre todas as previsões
 for i, p in enumerate(pred):
 
+    # adiciona a previsão na lista
     resultados.append(p)
 
+    # mostra a previsão da janela
     print(
         f"{i} -> {p}"
     )
 
+# cria um resumo das previsões
 
-
-# =====================================
-# RESUMO
-# =====================================
-valores,quantidades=np.unique(
+# conta quantas vezes cada classe apareceu
+valores, quantidades = np.unique(
     pred,
     return_counts=True
 )
 
+print("\nresumo:")
 
-
-print("\nResumo:")
-
-
-for v,q in zip(
+# mostra a quantidade de cada classe
+for v, q in zip(
     valores,
     quantidades
 ):
@@ -170,31 +126,27 @@ for v,q in zip(
         f"{v}: {q}"
     )
 
-
-
-indice=np.argmax(
+# encontra a classe com maior quantidade
+indice = np.argmax(
     quantidades
 )
 
+# define a classe final
+classe_final = valores[indice]
 
-classe_final=valores[indice]
-
-
-porcentagem=(
-
+# calcula a porcentagem da classe vencedora
+porcentagem = (
     quantidades[indice]
     /
     len(pred)
+) * 100
 
-)*100
-
-
-
+# mostra a decisão final
 print("\n====================")
-print("DECISÃO FINAL")
+print("decisão final")
 print("====================")
 
-
+# mostra a classe prevista e sua porcentagem
 print(
     f"{classe_final} -> {porcentagem:.2f}%"
 )

@@ -1,331 +1,35 @@
-from utils import *
+from utils import *  # importa configurações e funções do projeto
 
-import joblib
-import pandas as pd
-import numpy as np
+import joblib  # usado para salvar o modelo treinado
+import pandas as pd  # trabalha com tabelas
+import numpy as np  # faz cálculos matemáticos
 
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline  # junta todas as etapas do treinamento
+from sklearn.preprocessing import StandardScaler  # normaliza os dados
+from sklearn.svm import SVC  # cria o classificador svm
 
 from sklearn.model_selection import (
-    train_test_split,
-    cross_val_score
+    train_test_split,  # separa treino e teste
+    cross_val_score    # faz validação cruzada
 )
 
 from sklearn.metrics import (
-    accuracy_score,
-    confusion_matrix,
-    classification_report
+    accuracy_score,        # calcula a acurácia
+    confusion_matrix,      # cria a matriz de confusão
+    classification_report  # mostra as métricas de cada classe
 )
 
 
-# =====================================================
-# CONFIG
-# =====================================================
+# cria o dataset usado no treinamento
 
+# lista que armazenará todas as features
+dados = []
 
-# =====================================================
-# FEATURES
-# =====================================================
+# lista que armazenará o nome de cada classe
+classes = []
 
-def extrair_features(janela):
-
-    c1 = janela["canal1"].values
-    c2 = janela["canal2"].values
-
-
-    features = [
-
-        # canal 1
-        np.mean(c1),
-        np.std(c1),
-        np.max(c1),
-        np.min(c1),
-        np.ptp(c1),
-
-
-        # canal 2
-        np.mean(c2),
-        np.std(c2),
-        np.max(c2),
-        np.min(c2),
-        np.ptp(c2),
-
-
-        # variação
-        np.mean(np.abs(np.diff(c1))),
-        np.mean(np.abs(np.diff(c2))),
-
-
-        # energia
-        np.sqrt(np.mean(c1**2)),
-        np.sqrt(np.mean(c2**2))
-
-    ]
-
-
-    return features
-
-
-
-# =====================================================
-# JANELAS
-# =====================================================
-
-def criar_janelas(df):
-
-    X=[]
-
-
-    for i in range(
-        0,
-        len(df)-TAMANHO_JANELA,
-        PASSO
-    ):
-
-        janela=df.iloc[
-            i:i+TAMANHO_JANELA
-        ]
-
-
-        X.append(
-            extrair_features(janela)
-        )
-
-
-    return np.array(X)
-
-
-
-
-# =====================================================
-# OPENBCI NORMAL
-# =====================================================
-
-def carregar_normal():
-
-    print("\n================")
-    print("Carregando normal")
-    print("================")
-
-
-    df = pd.read_csv(
-        os.path.join(
-            PASTA_DADOS,
-            ARQUIVOS["normal"]
-        ),
-        skiprows=5
-    )
-
-
-    df=df.iloc[:,:3]
-
-
-    df.columns=[
-        "amostra",
-        "canal1",
-        "canal2"
-    ]
-
-
-    df=df.apply(
-        pd.to_numeric,
-        errors="coerce"
-    )
-
-
-    df=df.dropna()
-
-
-    df=df[
-        (abs(df.canal1)<500)&
-        (abs(df.canal2)<500)
-    ]
-
-
-    print(df.describe())
-
-
-    return df.reset_index(drop=True)
-
-
-
-
-
-# =====================================================
-# CSV DOS MOVIMENTOS
-# =====================================================
-
-def carregar_csv(nome):
-
-
-    caminho = os.path.join(
-        PASTA_DADOS,
-        ARQUIVOS[nome]
-    )
-
-
-    if not os.path.exists(caminho):
-
-        print(
-            "Arquivo não existe:",
-            caminho
-        )
-
-        return None
-
-
-
-    print("\n================")
-    print("Carregando", nome)
-    print("================")
-
-
-
-    raw=pd.read_csv(
-        caminho,
-        header=None
-    )
-
-
-
-    # formato igual piscada
-    df=raw.iloc[4:,:3]
-
-
-    df.columns=[
-        "tempo",
-        "canal1",
-        "canal2"
-    ]
-
-
-
-    for c in [
-        "tempo",
-        "canal1",
-        "canal2"
-    ]:
-
-        df[c]=pd.to_numeric(
-            df[c],
-            errors="coerce"
-        )
-
-
-    df=df.dropna()
-
-
-
-    # volts -> mV
-    if abs(df.canal1).max()<10:
-
-        df["canal1"]*=1000
-        df["canal2"]*=1000
-
-
-
-    df["amostra"]=range(
-        len(df)
-    )
-
-
-
-    return df[
-        [
-            "amostra",
-            "canal1",
-            "canal2"
-        ]
-    ]
-
-
-
-
-
-# =====================================================
-# PISCADA
-# =====================================================
-
-def carregar_piscada():
-
-    print("\n================")
-    print("Carregando piscada")
-    print("================")
-
-
-    raw = pd.read_csv(
-        os.path.join(
-            PASTA_DADOS,
-            ARQUIVOS["piscada"]
-        ),
-        header=None
-    )
-
-
-    df=raw.iloc[4:,:3]
-
-
-    df.columns=[
-        "tempo",
-        "canal1",
-        "canal2"
-    ]
-
-
-    for c in [
-        "tempo",
-        "canal1",
-        "canal2"
-    ]:
-
-        df[c]=pd.to_numeric(
-            df[c],
-            errors="coerce"
-        )
-
-
-    df=df.dropna()
-
-
-    df["canal1"]*=1000
-    df["canal2"]*=1000
-
-
-    df["amostra"]=range(
-        len(df)
-    )
-
-
-    print(
-        df.describe()
-    )
-
-
-    return df[
-        [
-            "amostra",
-            "canal1",
-            "canal2"
-        ]
-    ]
-
-
-
-
-
-# =====================================================
-# CRIAR DATASET
-# =====================================================
-
-
-dados=[]
-classes=[]
-
-
-
-movimentos=[
+# lista com todos os movimentos
+movimentos = [
     "normal",
     "piscada",
     "cima",
@@ -334,94 +38,97 @@ movimentos=[
     "direita"
 ]
 
-
-
+# percorre todos os movimentos
 for nome in movimentos:
 
     print("\n================")
-    print("Carregando", nome)
+    print("carregando", nome)
     print("================")
 
-    df=carregar_movimento(nome)
+    # carrega o movimento atual
+    df = carregar_movimento(nome)
 
+    # verifica se o arquivo foi encontrado
     if df is None:
 
-        print("Arquivo não encontrado.")
+        print("arquivo não encontrado")
         continue
 
-    X=criar_janelas(df)
+    # cria as janelas do movimento
+    X = criar_janelas(df)
 
+    # adiciona as features ao dataset
     dados.extend(X)
 
+    # adiciona o nome da classe para cada janela
     classes.extend(
-        [nome]*len(X)
+        [nome] * len(X)
     )
 
-    print("Janelas:",len(X))
+    # mostra quantas janelas foram criadas
+    print("janelas:", len(X))
 
-
-
-
-
-X=np.array(dados)
-
-y=np.array(classes)
-
-
+# transforma as listas em arrays do numpy
+X = np.array(dados)
+y = np.array(classes)
 
 print("\n================")
-print("DATASET FINAL")
+print("dataset final")
 print("================")
 
+# mostra o total de amostras
 print(
-    "Amostras:",
+    "amostras:",
     len(X)
 )
 
+# mostra a quantidade de features
 print(
-    "Features:",
+    "features:",
     X.shape[1]
 )
 
-
+# mostra quantas amostras existem em cada classe
 print(
     pd.Series(y).value_counts()
 )
 
-
-
-# =====================================================
-# SEGURANÇA
-# =====================================================
-
+# verifica se existem pelo menos duas classes
 if len(np.unique(y)) < 2:
 
     raise Exception(
-        "Necessário pelo menos duas classes diferentes!"
+        "necessário pelo menos duas classes diferentes"
     )
 
 
+# cria o pipeline de treinamento
+pipeline = Pipeline([
 
-
-
-# =====================================================
-# MODELO
-# =====================================================
-
-
-pipeline=Pipeline([
-
+    # primeira etapa do pipeline
     (
         "scaler",
+
+        # normaliza os dados antes do treinamento
         StandardScaler()
     ),
 
+    # segunda etapa do pipeline
     (
         "svm",
+
+        # cria o classificador svm
         SVC(
+
+            # usa um kernel não linear
             kernel="rbf",
+
+            # controla o quanto o modelo tenta evitar erros
             C=10,
+
+            # calcula automaticamente o valor de gamma
             gamma="scale",
+
+            # equilibra classes com quantidades diferentes
             class_weight="balanced"
         )
     )
@@ -429,112 +136,99 @@ pipeline=Pipeline([
 ])
 
 
+# divide os dados em treino e teste
+X_train, X_test, y_train, y_test = train_test_split(
 
-
-
-X_train,X_test,y_train,y_test=train_test_split(
-
+    # features
     X,
+
+    # classes
     y,
 
+    # separa 25 por cento para teste
     test_size=0.25,
 
+    # mantém o mesmo resultado em cada execução
     random_state=42,
 
+    # mantém a proporção das classes
     stratify=y
 
 )
 
 
-
-
+# treina o modelo usando os dados de treino
 pipeline.fit(
     X_train,
     y_train
 )
 
 
-
-
-# =====================================================
-# RESULTADO
-# =====================================================
-
-
-pred=pipeline.predict(
+# faz previsões usando os dados de teste
+pred = pipeline.predict(
     X_test
 )
 
-
+# mostra os resultados do modelo
 print("\n===================")
-print("RESULTADOS")
+print("resultados")
 print("===================")
 
+# mostra a porcentagem de acertos
+print(
+    "acurácia:",
+    accuracy_score(
+        y_test,
+        pred
+    )
+)
 
+# mostra a matriz de confusão
+print("\nmatriz:")
 
 print(
-"ACURÁCIA:",
-accuracy_score(
-    y_test,
-    pred
+    confusion_matrix(
+        y_test,
+        pred
+    )
 )
-)
 
-
-
-print("\nMATRIZ:")
-
+# mostra as métricas de cada classe
 print(
-confusion_matrix(
-    y_test,
-    pred
-)
-)
-
-
-
-print(
-classification_report(
-    y_test,
-    pred
-)
+    classification_report(
+        y_test,
+        pred
+    )
 )
 
 
-
-scores=cross_val_score(
+# faz uma validação cruzada com cinco divisões
+scores = cross_val_score(
     pipeline,
     X,
     y,
     cv=5
 )
 
-
-print("\nVALIDAÇÃO:")
+# mostra os resultados da validação
+print("\nvalidação:")
 print(scores)
 
-
+# mostra a média da validação
 print(
-"MÉDIA:",
-scores.mean()
+    "média:",
+    scores.mean()
 )
 
 
 
-
-
-# =====================================================
-# SALVAR
-# =====================================================
-
-
+# salva o modelo treinado em um arquivo
 joblib.dump(
     pipeline,
     "modelo_svm.pkl"
 )
 
-
-
+# informa que o modelo foi salvo
 print(
-"\nMODELO SALVO!"
+    "\nmodelo salvo"
 )
