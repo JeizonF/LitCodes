@@ -2,6 +2,63 @@ import os  # usado para trabalhar com arquivos e pastas
 import numpy as np  # usado para fazer cálculos matemáticos
 import pandas as pd  # usado para trabalhar com tabelas
 
+MODELO = "modelo_svm.pkl"
+
+# define a porta serial do OpenBCI
+
+PORTA = "COM3"
+
+# define a velocidade da comunicação serial
+
+BAUDRATE = 115200
+
+# define a intensidade mínima para movimentar o mouse
+
+LIMIAR_INTENSIDADE = 30
+
+# define a intensidade máxima usada no cálculo
+# da velocidade do mouse
+
+INTENSIDADE_MAXIMA = 300
+
+# define a velocidade mínima do mouse
+
+VELOCIDADE_MINIMA = 2
+
+# define a velocidade máxima do mouse
+
+VELOCIDADE_MAXIMA = 15
+
+# define quantas classificações iguais são necessárias
+# para confirmar um movimento
+
+CONFIRMACOES_NECESSARIAS = 2
+
+
+# define os arquivos de cada classe
+
+ARQUIVOS = {
+
+    "normal":
+        "openBCI_raw_2018-07-02_15-46-30.txt",
+
+    "piscada":
+        "piscada.csv",
+
+    "cima":
+        "cimabaixocsr1.csv",
+
+    "baixo":
+        "olhar_baixo.csv",
+
+    "esquerda":
+        "esquerda01.csv",
+
+    "direita":
+        "direita_teste.csv"
+}
+
+
 
 
 # configurações gerais
