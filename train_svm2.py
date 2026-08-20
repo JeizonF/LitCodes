@@ -1,34 +1,193 @@
 from utils import *  # importa configurações e funções do projeto
 
+import os  # usado para trabalhar com arquivos e pastas
 import joblib  # usado para salvar o modelo treinado
-import pandas as pd  # trabalha com tabelas
-import numpy as np  # faz cálculos matemáticos
+import pandas as pd  # usado para trabalhar com tabelas
+import numpy as np  # usado para fazer cálculos matemáticos
+from sklearn.calibration import CalibratedClassifierCV
 
-from sklearn.pipeline import Pipeline  # junta todas as etapas do treinamento
+from sklearn.pipeline import Pipeline  # junta as etapas do treinamento
 from sklearn.preprocessing import StandardScaler  # normaliza os dados
 from sklearn.svm import SVC  # cria o classificador svm
 
 from sklearn.model_selection import (
     train_test_split,  # separa treino e teste
-    cross_val_score    # faz validação cruzada
+    cross_val_score  # faz validação cruzada
 )
 
 from sklearn.metrics import (
-    accuracy_score,        # calcula a acurácia
-    confusion_matrix,      # cria a matriz de confusão
-    classification_report  # mostra as métricas de cada classe
+    accuracy_score,  # calcula a acurácia
+    confusion_matrix,  # cria a matriz de confusão
+    classification_report  # mostra as métricas
 )
 
 
-# cria o dataset usado no treinamento
+# =====================================================
+# FUNÇÃO PARA CARREGAR UMA CLASSE
+# =====================================================
+
+# carrega todos os arquivos de uma classe
+# criando as janelas separadamente para cada arquivo
+
+def carregar_classe(nome):
+
+    # lista que guardará todas as features da classe
+
+    dados_classe = []
+
+
+    # pega os arquivos configurados no utils
+
+    arquivos = ARQUIVOS.get(
+        nome
+    )
+
+
+    # verifica se existem arquivos configurados
+
+    if arquivos is None:
+
+        print(
+            f"\nnenhum arquivo configurado para '{nome}'"
+        )
+
+        return np.array([])
+
+
+    # se existir apenas um arquivo,
+    # transforma em lista
+
+    if isinstance(
+        arquivos,
+        str
+    ):
+
+        arquivos = [
+            arquivos
+        ]
+
+
+    # percorre todos os arquivos da classe
+
+    for arquivo in arquivos:
+
+        # monta o caminho completo
+
+        caminho = os.path.join(
+            PASTA_DADOS,
+            arquivo
+        )
+
+
+        # verifica se o arquivo existe
+
+        if not os.path.exists(
+            caminho
+        ):
+
+            print(
+                f"\narquivo não encontrado: {arquivo}"
+            )
+
+            continue
+
+
+        print("\n==============================")
+        print(
+            f"classe: {nome}"
+        )
+        print(
+            f"arquivo: {arquivo}"
+        )
+        print("==============================")
+
+
+        # carrega somente este arquivo
+
+        df = carregar_arquivo(
+            caminho
+        )
+
+
+        # verifica se o arquivo foi carregado
+
+        if df is None:
+
+            print(
+                "não foi possível carregar"
+            )
+
+            continue
+
+
+        # verifica se existem dados suficientes
+
+        if len(df) < TAMANHO_JANELA:
+
+            print(
+                "arquivo pequeno demais "
+                "para criar uma janela"
+            )
+
+            continue
+
+
+        # cria as janelas SOMENTE deste arquivo
+
+        X_arquivo = criar_janelas(
+            df
+        )
+
+
+        # verifica se foram criadas janelas
+
+        if len(X_arquivo) == 0:
+
+            print(
+                "nenhuma janela criada"
+            )
+
+            continue
+
+
+        # adiciona as features deste arquivo
+
+        dados_classe.extend(
+            X_arquivo
+        )
+
+
+        # mostra a quantidade de janelas
+
+        print(
+            "janelas criadas:",
+            len(X_arquivo)
+        )
+
+
+    # transforma em array numpy
+
+    return np.array(
+        dados_classe
+    )
+
+
+# =====================================================
+# CRIAÇÃO DO DATASET
+# =====================================================
 
 # lista que armazenará todas as features
+
 dados = []
 
-# lista que armazenará o nome de cada classe
+
+# lista que armazenará as classes
+
 classes = []
 
-# lista com todos os movimentos
+
+# movimentos que o sistema tentará treinar
+
 movimentos = [
     "normal",
     "piscada",
@@ -38,162 +197,284 @@ movimentos = [
     "direita"
 ]
 
+
 # percorre todos os movimentos
+
 for nome in movimentos:
 
-    print("\n================")
-    print("carregando", nome)
-    print("================")
+    print("\n================================")
+    print(
+        "carregando classe:",
+        nome
+    )
+    print("================================")
 
-    # carrega o movimento atual
-    df = carregar_movimento(nome)
 
-    # verifica se o arquivo foi encontrado
-    if df is None:
+    # carrega todos os arquivos daquela classe
 
-        print("arquivo não encontrado")
-        continue
-
-    # cria as janelas do movimento
-    X = criar_janelas(df)
-
-    # adiciona as features ao dataset
-    dados.extend(X)
-
-    # adiciona o nome da classe para cada janela
-    classes.extend(
-        [nome] * len(X)
+    X_classe = carregar_classe(
+        nome
     )
 
-    # mostra quantas janelas foram criadas
-    print("janelas:", len(X))
 
-# transforma as listas em arrays do numpy
-X = np.array(dados)
-y = np.array(classes)
+    # verifica se existem janelas
 
-print("\n================")
+    if len(X_classe) == 0:
+
+        print(
+            f"\nclasse '{nome}' ignorada"
+        )
+
+        continue
+
+
+    # adiciona as features ao dataset
+
+    dados.extend(
+        X_classe
+    )
+
+
+    # adiciona o nome da classe
+    # para cada janela criada
+
+    classes.extend(
+        [nome] * len(X_classe)
+    )
+
+
+    # mostra o total da classe
+
+    print(
+        f"\ntotal de janelas "
+        f"da classe '{nome}':",
+        len(X_classe)
+    )
+
+
+# =====================================================
+# TRANSFORMA OS DADOS EM ARRAYS
+# =====================================================
+
+X = np.array(
+    dados
+)
+
+
+y = np.array(
+    classes
+)
+
+
+# =====================================================
+# MOSTRA O DATASET FINAL
+# =====================================================
+
+print("\n================================")
 print("dataset final")
-print("================")
+print("================================")
 
-# mostra o total de amostras
+
+# mostra o total de janelas
+
 print(
-    "amostras:",
+    "total de amostras:",
     len(X)
 )
 
+
+# verifica se existem dados
+
+if len(X) == 0:
+
+    raise Exception(
+        "nenhuma amostra foi encontrada"
+    )
+
+
 # mostra a quantidade de features
+
 print(
-    "features:",
+    "quantidade de features:",
     X.shape[1]
 )
 
-# mostra quantas amostras existem em cada classe
+
+# mostra quantas janelas existem
+# para cada classe
+
+print("\namostras por classe:")
+
 print(
-    pd.Series(y).value_counts()
+    pd.Series(
+        y
+    ).value_counts()
 )
 
-# verifica se existem pelo menos duas classes
-if len(np.unique(y)) < 2:
+
+# verifica quantas classes foram encontradas
+
+if len(
+    np.unique(y)
+) < 2:
 
     raise Exception(
-        "necessário pelo menos duas classes diferentes"
+        "é necessário possuir "
+        "pelo menos duas classes"
     )
 
 
-# cria o pipeline de treinamento
-pipeline = Pipeline([
+# =====================================================
+# DIVISÃO ENTRE TREINO E TESTE
+# =====================================================
 
-    # primeira etapa do pipeline
-    (
-        "scaler",
+# separa os dados
 
-        # normaliza os dados antes do treinamento
-        StandardScaler()
-    ),
-
-    # segunda etapa do pipeline
-    (
-        "svm",
-
-        # cria o classificador svm
-        SVC(
-
-            # usa um kernel não linear
-            kernel="rbf",
-
-            # controla o quanto o modelo tenta evitar erros
-            C=10,
-
-            # calcula automaticamente o valor de gamma
-            gamma="scale",
-
-            # equilibra classes com quantidades diferentes
-            class_weight="balanced"
-        )
-    )
-
-])
-
-
-# divide os dados em treino e teste
 X_train, X_test, y_train, y_test = train_test_split(
 
     # features
+
     X,
 
+
     # classes
+
     y,
 
-    # separa 25 por cento para teste
+
+    # porcentagem usada para teste
+
     test_size=0.25,
 
-    # mantém o mesmo resultado em cada execução
+
+    # mantém o mesmo resultado
+    # quando os dados são iguais
+
     random_state=42,
 
-    # mantém a proporção das classes
-    stratify=y
 
+    # mantém a proporção das classes
+
+    stratify=y
 )
 
 
-# treina o modelo usando os dados de treino
+# =====================================================
+# CRIAÇÃO DO MODELO
+# =====================================================
+
+# cria um pipeline
+
+pipeline = Pipeline([
+
+
+    # normaliza as features
+
+    (
+        "scaler",
+
+        StandardScaler()
+    ),
+
+
+    # cria o svm
+
+    (
+        "svm",
+        CalibratedClassifierCV(
+
+            SVC(
+                kernel="rbf",
+                C=10,
+                gamma="scale",
+                class_weight="balanced"
+            ),
+
+            ensemble=False
+        )
+    )
+])
+
+
+# =====================================================
+# TREINAMENTO
+# =====================================================
+
+print("\n================================")
+print("treinando modelo")
+print("================================")
+
+
+# treina usando apenas os dados de treino
+
 pipeline.fit(
     X_train,
     y_train
 )
 
 
-# faz previsões usando os dados de teste
+# =====================================================
+# TESTE
+# =====================================================
+
+# faz previsões nos dados separados para teste
+
 pred = pipeline.predict(
     X_test
 )
 
-# mostra os resultados do modelo
-print("\n===================")
-print("resultados")
-print("===================")
 
-# mostra a porcentagem de acertos
-print(
-    "acurácia:",
-    accuracy_score(
-        y_test,
-        pred
-    )
+# calcula a acurácia
+
+acuracia = accuracy_score(
+    y_test,
+    pred
 )
 
-# mostra a matriz de confusão
-print("\nmatriz:")
+
+print("\n================================")
+print("resultado")
+print("================================")
+
+
+print(
+    f"acurácia: {acuracia * 100:.2f}%"
+)
+
+
+# =====================================================
+# MATRIZ DE CONFUSÃO
+# =====================================================
+
+print("\nmatriz de confusão:")
+
+
+# mostra a ordem das classes
+
+print(
+    "classes:",
+    pipeline.classes_
+)
+
+
+# mostra a matriz
 
 print(
     confusion_matrix(
         y_test,
-        pred
+        pred,
+        labels=pipeline.classes_
     )
 )
 
-# mostra as métricas de cada classe
+
+# =====================================================
+# RELATÓRIO DETALHADO
+# =====================================================
+
+print("\nrelatório:")
+
+
 print(
     classification_report(
         y_test,
@@ -202,33 +483,102 @@ print(
 )
 
 
-# faz uma validação cruzada com cinco divisões
+# =====================================================
+# VALIDAÇÃO CRUZADA
+# =====================================================
+
+print("\n================================")
+print("validação cruzada")
+print("================================")
+
+
+# faz validação cruzada
+
 scores = cross_val_score(
+
+    # modelo
+
     pipeline,
+
+
+    # dados
+
     X,
+
+
+    # classes
+
     y,
+
+
+    # quantidade de divisões
+
     cv=5
 )
 
-# mostra os resultados da validação
-print("\nvalidação:")
-print(scores)
 
-# mostra a média da validação
+# mostra os resultados individuais
+
 print(
-    "média:",
-    scores.mean()
+    "resultados:"
 )
 
 
+print(
+    scores
+)
 
-# salva o modelo treinado em um arquivo
+
+# mostra a média
+
+print(
+    f"média: "
+    f"{scores.mean() * 100:.2f}%"
+)
+
+
+# mostra o desvio
+
+print(
+    f"desvio: "
+    f"{scores.std() * 100:.2f}%"
+)
+
+
+# =====================================================
+# TREINA O MODELO FINAL
+# =====================================================
+
+print("\n================================")
+print("treinando modelo final")
+print("================================")
+
+
+# agora treina usando TODOS os dados
+
+pipeline.fit(
+    X,
+    y
+)
+
+
+# =====================================================
+# SALVA O MODELO
+# =====================================================
+
 joblib.dump(
+
+    # modelo
+
     pipeline,
+
+
+    # arquivo onde será salvo
+
     "modelo_svm.pkl"
 )
 
-# informa que o modelo foi salvo
+
 print(
-    "\nmodelo salvo"
+    "\nmodelo salvo com sucesso!"
 )
