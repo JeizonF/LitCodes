@@ -6,6 +6,15 @@ import pandas as pd  # usado para trabalhar com tabelas
 
 TAMANHO_JANELA = 100
 
+MOVIMENTO_MOUSE = 50
+
+TAMANHO_JANELA_MOUSE = 1000
+
+PASSO_MOUSE = 200
+
+MODELO_PATH = "modelo_svm.pkl"
+
+ARQUIVO_TESTE = "dados/olhr_esq04.csv"
 
 # quantidade de amostras que a janela avança
 
