@@ -2,7 +2,7 @@ import tkinter as tk
 import joblib
 import pyautogui
 
-from utils import (
+from config.utils import (
     MOVIMENTO_MOUSE,
     TAMANHO_JANELA,
     PASSO,

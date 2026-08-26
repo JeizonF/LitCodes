@@ -3,8 +3,17 @@ import csv
 import json
 import numpy as np
 import joblib
+import sys
 
-from utils import (
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
+    )
+)
+
+from config.utils import (
     ARQUIVOS,
     PASTA_DADOS,
     MODELO_PATH,
@@ -15,7 +24,7 @@ from utils import (
     TEMPO_MOUSE
 )
 
-from mouse_gui import MouseVirtual
+from mouse_teclado import MouseTeclado as MouseVirtual
 
 from sklearn.metrics import confusion_matrix
 
@@ -325,7 +334,7 @@ def testar_arquivo(
         "EXECUTANDO"
     )
 
-    mouse.voltar_centro()
+    #mouse.voltar_centro()
 
     mouse.iniciar()
 
@@ -390,7 +399,11 @@ def testar_arquivo(
             velocidade
         )
 
-        if previsao in [
+        if previsao == "piscada":
+
+            mouse.clicar()
+
+        elif previsao in [
             "cima",
             "baixo",
             "esquerda",
@@ -501,7 +514,7 @@ def testar_arquivo(
             f"{porcentagem:.2f}%"
         )
 
-    mouse.voltar_centro()
+    #mouse.voltar_centro()
 
     return {
         "arquivo": arquivo,
@@ -1123,7 +1136,7 @@ def main():
 
     finally:
 
-        mouse.voltar_centro()
+        #mouse.voltar_centro()
 
         print(
             "\nMouse virtual finalizado."
@@ -1191,7 +1204,7 @@ def main():
         "================================"
     )
 
-    mouse.fechar()
+    mouse.root.mainloop()
 
 
 if __name__ == "__main__":

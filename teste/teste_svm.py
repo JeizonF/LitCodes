@@ -1,8 +1,17 @@
 import os  # usado para trabalhar com caminhos
 import numpy as np  # usado para cálculos matemáticos
 import joblib  # usado para carregar o modelo salvo
+import sys
 
-from utils import (
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
+    )
+)
+
+from config.utils import (
     PASTA_DADOS,           # pasta onde estão os arquivos
     listar_arquivos_dados, # procura os arquivos disponíveis
     carregar_arquivo,      # carrega e prepara o arquivo

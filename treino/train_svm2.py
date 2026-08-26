@@ -3,8 +3,17 @@ import random
 import json
 import numpy as np
 import joblib
+import sys
 
-from utils import (
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
+    )
+)
+
+from config.utils import (
     ARQUIVOS,
     PASTA_DADOS,
     TAMANHO_JANELA,
